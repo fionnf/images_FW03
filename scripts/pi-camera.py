@@ -1,9 +1,7 @@
-
-
 """
-This script captures images at specified intervals using the Picamera2 on a Raspberry Pi, 
-saves them to a directory, and uploads them to a Git repository. It also manages disk usage 
-by deleting the local images after they have been successfully pushed to GitHub, ensuring 
+This script captures images at specified intervals using the Picamera2 on a Raspberry Pi,
+saves them to a directory, and uploads them to a Git repository. It also manages disk usage
+by deleting the local images after they have been successfully pushed to GitHub, ensuring
 that the Raspberry Pi's storage does not get full.
 
 Features:
@@ -23,7 +21,7 @@ Dependencies:
 To use on a Raspberry pi via ssh
 1. Log into SSH of the raspberry pi
 2. Run the following command:
-    sudo nohup python3 pi-camera.py FW03 60 > output.log 2>&1 &
+    nohup python3 pi-camera.py FW03 60 > output.log 2>&1 &
     This prevents the script from stopping when the SSH session is closed.
     The output of the script is written to output.log.
 3. To stop the script, find the process ID (PID) using the following command:
@@ -47,10 +45,6 @@ current_pid = os.getpid()
 # Kill all other instances of pi-camera.py and any other libcam processes, excluding the current process
 os.system(f"pkill -9 -f -o pi-camera.py --pid {current_pid}")
 os.system(f"pkill -9 -f -o libcam --pid {current_pid}")
-
-# Set Git user name and email
-subprocess.run(['git', 'config', '--global', 'user.email', 'fionnferreira@gmail.com'])
-subprocess.run(['git', 'config', '--global', 'user.name', 'Ottenpi'])
 
 # Function to check disk usage and delete oldest files if necessary
 def manage_disk_usage(directory, threshold=80):
@@ -141,10 +135,6 @@ try:
         subprocess.run(['git', 'push'], cwd=repo_path)
 
         print(f"Captured and uploaded image at {timestamp}")
-
-        # Update the /etc/motd file
-        with open('/etc/motd', 'w') as motd_file:
-            motd_file.write(f"pi-Camera running on experiment name: {experiment_name}\n To find the running PID: ps -ef | grep pi-camera.py \n To cancel, type: kill <PID> \n To open log file, use: cat output.log \n Link to images: /path/to/images/{experiment_name}_{timestamp}\n")
 
         # Delete the image from the local storage after pushing to GitHub
         os.remove(image_path)
