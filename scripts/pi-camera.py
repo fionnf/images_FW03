@@ -23,7 +23,7 @@ Dependencies:
 To use on a Raspberry pi via ssh
 1. Log into SSH of the raspberry pi
 2. Run the following command:
-    nohup python3 pi-camera.py FW03 60 > output.log 2>&1 &
+    sudo nohup python3 pi-camera.py FW03 60 > output.log 2>&1 &
     This prevents the script from stopping when the SSH session is closed.
     The output of the script is written to output.log.
 3. To stop the script, find the process ID (PID) using the following command:
@@ -45,8 +45,8 @@ import argparse
 current_pid = os.getpid()
 
 # Kill all other instances of pi-camera.py and any other libcam processes, excluding the current process
-os.system(f"pkill -f -o pi-camera.py --signal 9 --pid {current_pid}")
-os.system(f"pkill -f -o libcam --signal 9 --pid {current_pid}")
+os.system(f"pkill -9 -f -o pi-camera.py --pid {current_pid}")
+os.system(f"pkill -9 -f -o libcam --pid {current_pid}")
 
 # Set Git user name and email
 subprocess.run(['git', 'config', '--global', 'user.email', 'fionnferreira@gmail.com'])
