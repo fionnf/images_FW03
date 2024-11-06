@@ -1,0 +1,2 @@
+nohup: ignoring input
+python3: can't open file '/home/ottenpi/images_fw03/pi-camera.py': [Errno 2] No such file or directory
