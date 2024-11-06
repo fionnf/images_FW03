@@ -1,3 +1,4 @@
+
 """
 This script captures images at specified intervals using the Picamera2 on a Raspberry Pi,
 saves them to a directory, and uploads them to a Git repository. It also manages disk usage
@@ -21,7 +22,7 @@ Dependencies:
 To use on a Raspberry pi via ssh
 1. Log into SSH of the raspberry pi
 2. Run the following command:
-    nohup python3 pi-camera.py FW03 60 > output.log 2>&1 &
+    nohup python3 pi-camera.py > output.log 2>&1 &
     This prevents the script from stopping when the SSH session is closed.
     The output of the script is written to output.log.
 3. To stop the script, find the process ID (PID) using the following command:
@@ -38,13 +39,6 @@ import cv2
 from picamera2 import Picamera2
 import shutil
 import argparse
-
-# Get the current process ID
-current_pid = os.getpid()
-
-# Kill all other instances of pi-camera.py and any other libcam processes, excluding the current process
-os.system(f"pkill -9 -f -o pi-camera.py --pid {current_pid}")
-os.system(f"pkill -9 -f -o libcam --pid {current_pid}")
 
 # Function to check disk usage and delete oldest files if necessary
 def manage_disk_usage(directory, threshold=80):
@@ -73,76 +67,70 @@ args = parser.parse_args()
 experiment_name = args.experiment_name
 image_interval = args.image_interval
 
-try:
-    # Initialize the camera
-    picam2 = Picamera2()
-    picam2.start()
+# Initialize the camera
+picam2 = Picamera2()
+picam2.start()
 
-    # Define the directory to save images
+# Define the directory to save images
+timestamp = time.strftime("%Y%m%d-%H%M%S")
+output_dir = f"images/{experiment_name}_{timestamp}"
+if not os.path.exists(output_dir):
+    os.makedirs(output_dir)
+
+# Create metadata.csv and README.md
+metadata_path = os.path.join(output_dir, 'metadata.csv')
+readme_path = os.path.join(output_dir, 'README.md')
+
+if not os.path.exists(metadata_path):
+    with open(metadata_path, 'w') as f:
+        f.write("Timestamp,Image Path\n")
+
+if not os.path.exists(readme_path):
+    with open(readme_path, 'w') as f:
+        f.write(f"# {experiment_name} Images\n\n")
+        f.write("This directory contains images captured during the experiment.\n")
+        f.write("Each image is named with a timestamp indicating when it was taken.\n\n")
+        f.write("## Metadata\n\n")
+        f.write("Additional metadata about the images can be found in `metadata.csv`.\n")
+
+# Use the existing Git repository
+repo_path = os.path.dirname(os.path.abspath(__file__))  # Path of the current code
+
+# Ensure the script uses the same branch
+current_branch = subprocess.run(['git', 'branch', '--show-current'], cwd=repo_path, capture_output=True, text=True).stdout.strip()
+subprocess.run(['git', 'checkout', current_branch], cwd=repo_path)
+
+# Capture images at specified intervals and upload to Git
+interval = image_interval
+while True:
     timestamp = time.strftime("%Y%m%d-%H%M%S")
-    output_dir = f"images/{experiment_name}_{timestamp}"
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+    image_path = os.path.join(output_dir, f"{timestamp}.jpg")
 
-    # Create metadata.csv and README.md
-    metadata_path = os.path.join(output_dir, 'metadata.csv')
-    readme_path = os.path.join(output_dir, 'README.md')
+    # Capture image
+    frame = picam2.capture_array()
+    # Optional clockwise rotation
+    frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+    cv2.imwrite(image_path, frame)
 
-    if not os.path.exists(metadata_path):
-        with open(metadata_path, 'w') as f:
-            f.write("Timestamp,Image Path\n")
+    # Update metadata
+    with open(metadata_path, 'a') as f:
+        f.write(f"{timestamp},{image_path}\n")
 
-    if not os.path.exists(readme_path):
-        with open(readme_path, 'w') as f:
-            f.write(f"# {experiment_name} Images\n\n")
-            f.write("This directory contains images captured during the experiment.\n")
-            f.write("Each image is named with a timestamp indicating when it was taken.\n\n")
-            f.write("## Metadata\n\n")
-            f.write("Additional metadata about the images can be found in `metadata.csv`.\n")
+    # Add, commit, and push the new image and metadata to the Git repository
+    subprocess.run(['git', 'add', image_path, metadata_path], cwd=repo_path)
+    subprocess.run(['git', 'commit', '-m', f"Add image and metadata for {timestamp}"], cwd=repo_path)
+    subprocess.run(['git', 'push'], cwd=repo_path)
 
-    # Use the existing Git repository
-    repo_path = os.path.dirname(os.path.abspath(__file__))  # Path of the current code
+    print(f"Captured and uploaded image at {timestamp}")
 
-    # Ensure the script uses the same branch
-    current_branch = subprocess.run(['git', 'branch', '--show-current'], cwd=repo_path, capture_output=True, text=True).stdout.strip()
-    subprocess.run(['git', 'checkout', current_branch], cwd=repo_path)
+    # Delete the image from the local storage after pushing to GitHub
+    os.remove(image_path)
+    print(f"Deleted local image at {image_path}")
 
-    # Capture images at specified intervals and upload to Git
-    interval = image_interval
-    while True:
-        timestamp = time.strftime("%Y%m%d-%H%M%S")
-        image_path = os.path.join(output_dir, f"{timestamp}.jpg")
+    # Manage disk usage
+    manage_disk_usage(output_dir)
 
-        # Capture image
-        frame = picam2.capture_array()
-        # Optional clockwise rotation
-        frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
-        cv2.imwrite(image_path, frame)
-
-        # Update metadata
-        with open(metadata_path, 'a') as f:
-            f.write(f"{timestamp},{image_path}\n")
-
-        # Add, commit, and push the new image and metadata to the Git repository
-        subprocess.run(['git', 'add', image_path, metadata_path], cwd=repo_path)
-        subprocess.run(['git', 'commit', '-m', f"Add image and metadata for {timestamp}"], cwd=repo_path)
-        subprocess.run(['git', 'push'], cwd=repo_path)
-
-        print(f"Captured and uploaded image at {timestamp}")
-
-        # Delete the image from the local storage after pushing to GitHub
-        os.remove(image_path)
-        print(f"Deleted local image at {image_path}")
-
-        # Manage disk usage
-        manage_disk_usage(output_dir)
-
-        time.sleep(interval)
-
-except Exception as e:
-    print(f"An error occurred: {e}")
-    picam2.stop()
-    print("Camera stopped due to an error.")
+    time.sleep(interval)
 
 picam2.stop()
 print("Camera stopped.")
