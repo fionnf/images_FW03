@@ -132,8 +132,12 @@ try:
         # Add, commit, and push the new image and metadata to the Git repository
         subprocess.run(['git', 'add', image_path, metadata_path], cwd=repo_path)
         subprocess.run(['git', 'commit', '-m', f"Add image and metadata for {timestamp}"], cwd=repo_path)
+
+        # Stash changes, pull with rebase, and apply stash
         subprocess.run(['git', 'stash'], cwd=repo_path)
         subprocess.run(['git', 'pull', '--rebase'], cwd=repo_path)
+        subprocess.run(['git', 'stash', 'pop'], cwd=repo_path)
+
         subprocess.run(['git', 'push'], cwd=repo_path)
 
         print(f"Captured and uploaded image at {timestamp}")
