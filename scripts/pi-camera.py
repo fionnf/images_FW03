@@ -48,6 +48,10 @@ current_pid = os.getpid()
 os.system(f"pkill -f -o pi-camera.py --signal 9 --pid {current_pid}")
 os.system(f"pkill -f -o libcam --signal 9 --pid {current_pid}")
 
+# Set Git user name and email
+subprocess.run(['git', 'config', '--global', 'user.email', 'fionnferreira@gmail.com'])
+subprocess.run(['git', 'config', '--global', 'user.name', 'Ottenpi'])
+
 # Function to check disk usage and delete oldest files if necessary
 def manage_disk_usage(directory, threshold=80):
     total, used, free = shutil.disk_usage("/")
