@@ -120,9 +120,14 @@ while True:
     # Add, commit, and push the new image and metadata to the Git repository
     subprocess.run(['git', 'add', image_path, metadata_path], cwd=repo_path)
     subprocess.run(['git', 'commit', '-m', f"Add image and metadata for {timestamp}"], cwd=repo_path)
+    subprocess.run(['git', 'pull', '--rebase'], cwd=repo_path)
     subprocess.run(['git', 'push'], cwd=repo_path)
 
     print(f"Captured and uploaded image at {timestamp}")
+
+    # Update the /etc/motd file
+    with open('/etc/motd', 'w') as motd_file:
+        motd_file.write(f"pi-Camera running on experiment name: {experiment_name}\n To find the running PID: ps -ef | grep pi-camera.py \n To cancel, type: kill <PID> \n To open log file, use: cat output.log \n Link to images: /path/to/images/{experiment_name}_{timestamp}\n")
 
     # Delete the image from the local storage after pushing to GitHub
     os.remove(image_path)
