@@ -41,6 +41,9 @@ from picamera2 import Picamera2
 import shutil
 import argparse
 
+os.system("pkill -f pi-camera.py")
+os.system("pkill -f libcam")
+
 # Function to check disk usage and delete oldest files if necessary
 def manage_disk_usage(directory, threshold=80):
     total, used, free = shutil.disk_usage("/")
