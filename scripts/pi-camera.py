@@ -41,8 +41,12 @@ from picamera2 import Picamera2
 import shutil
 import argparse
 
-os.system("pkill -f pi-camera.py")
-os.system("pkill -f libcam")
+# Get the current process ID
+current_pid = os.getpid()
+
+# Kill all other instances of pi-camera.py and any other libcam processes, excluding the current process
+os.system(f"pkill -f -o pi-camera.py --signal 9 --pid {current_pid}")
+os.system(f"pkill -f -o libcam --signal 9 --pid {current_pid}")
 
 # Function to check disk usage and delete oldest files if necessary
 def manage_disk_usage(directory, threshold=80):
