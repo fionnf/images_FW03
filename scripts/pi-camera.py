@@ -138,5 +138,10 @@ while True:
 
     time.sleep(interval)
 
+except Exception as e:
+    print(f"An error occurred: {e}")
+    picam2.stop()
+    print("Camera stopped due to an error.")
+
 picam2.stop()
 print("Camera stopped.")
